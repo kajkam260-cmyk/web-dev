@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI in Web Development — From Prompt to Production</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0E14;
+    --bg-elevated:#10151D;
+    --surface:#161C26;
+    --surface-2:#1B2230;
+    --border:#232B38;
+    --border-soft:#1B222E;
+    --text:#E6EDF3;
+    --text-dim:#8B98A9;
+    --text-faint:#525C6B;
+    --accent-ai:#7C9CFF;
+    --accent-ai-dim:rgba(124,156,255,0.14);
+    --accent-human:#F5A623;
+    --accent-human-dim:rgba(245,166,35,0.14);
+    --diff-add:#3FB950;
+    --diff-add-bg:rgba(63,185,80,0.08);
+    --diff-remove:#F85149;
+    --diff-remove-bg:rgba(248,81,73,0.08);
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'IBM Plex Sans', sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+
+  ::selection{background:var(--accent-ai-dim);color:var(--accent-ai);}
+
+  a{color:inherit;text-decoration:none;}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px;}
+
+  /* Background texture: faint scanline / grid, IDE-flavored */
+  .bg-grid{
+    position:fixed;inset:0;
+    background-image:
+      linear-gradient(rgba(124,156,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,156,255,0.035) 1px, transparent 1px);
+    background-size:56px 56px;
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 0%, black 10%, transparent 70%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* ============ NAV ============ */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(10,14,20,0.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border-soft);
+  }
+  .nav-inner{
+    display:flex;align-items:center;justify-content:space-between;
+    height:56px;
+  }
+  .logo{
+    font-family:var(--font-mono);
+    font-size:14px;font-weight:500;
+    display:flex;align-items:center;gap:8px;
+    color:var(--text);
+  }
+  .logo .dot{width:8px;height:8px;border-radius:50%;background:var(--accent-ai);box-shadow:0 0 10px var(--accent-ai);}
+  nav ul{display:flex;gap:28px;list-style:none;}
+  nav a{
+    font-family:var(--font-mono);
+    font-size:13px;color:var(--text-dim);
+    transition:color .2s ease;
+    position:relative;
+  }
+  nav a:hover{color:var(--accent-ai);}
+  .nav-links{display:flex;}
+
+  @media (max-width:720px){
+    .nav-links{display:none;}
+  }
+
+  /* ============ HERO ============ */
+  .hero{
+    position:relative;z-index:1;
+    padding:96px 0 64px;
+  }
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:12.5px;letter-spacing:0.14em;
+    color:var(--accent-human);
+    text-transform:uppercase;
+    display:flex;align-items:center;gap:10px;
+    margin-bottom:22px;
+  }
+  .eyebrow::before{
+    content:'';width:22px;height:1px;background:var(--accent-human);
+  }
+  h1{
+    font-family:var(--font-display);
+    font-size:clamp(40px, 6.4vw, 74px);
+    font-weight:700;
+    line-height:1.05;
+    letter-spacing:-0.02em;
+    max-width:820px;
+  }
+  h1 .accent{color:var(--accent-ai);}
+  .hero-sub{
+    font-size:17px;color:var(--text-dim);
+    max-width:560px;
+    margin-top:22px;
+  }
+  .hero-cta{
+    display:flex;gap:14px;margin-top:34px;flex-wrap:wrap;
+  }
+  .btn{
+    font-family:var(--font-mono);font-size:13.5px;
+    padding:12px 22px;border-radius:6px;
+    border:1px solid var(--border);
+    transition:all .2s ease;
+    cursor:pointer;
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  .btn-primary{
+    background:var(--accent-ai);color:#0A0E14;font-weight:600;border-color:var(--accent-ai);
+  }
+  .btn-primary:hover{background:#93AAFF;}
+  .btn-ghost{
+    color:var(--text-dim);
+  }
+  .btn-ghost:hover{color:var(--text);border-color:var(--text-faint);}
+
+  /* IDE mockup */
+  .ide{
+    margin-top:64px;
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 40px 80px -40px rgba(0,0,0,0.6);
+  }
+  .ide-titlebar{
+    display:flex;align-items:center;
+    padding:0 14px;height:38px;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    gap:8px;
+  }
+  .dots{display:flex;gap:6px;}
+  .dots span{width:10px;height:10px;border-radius:50%;}
+  .dots span:nth-child(1){background:#F85149;}
+  .dots span:nth-child(2){background:#F5A623;}
+  .dots span:nth-child(3){background:#3FB950;}
+  .ide-tabs{display:flex;gap:2px;margin-left:14px;}
+  .ide-tab{
+    font-family:var(--font-mono);font-size:12px;
+    padding:6px 12px;color:var(--text-faint);
+    border-radius:5px 5px 0 0;
+  }
+  .ide-tab.active{color:var(--text);background:var(--bg-elevated);}
+  .ide-body{
+    display:grid;grid-template-columns:1fr 1fr;
+    min-height:280px;
+  }
+  @media (max-width:780px){ .ide-body{grid-template-columns:1fr;} }
+  .ide-pane{padding:22px 24px;font-family:var(--font-mono);font-size:13.5px;}
+  .ide-pane.left{border-right:1px solid var(--border);}
+  @media (max-width:780px){ .ide-pane.left{border-right:none;border-bottom:1px solid var(--border);} }
+  .pane-label{
+    font-size:10.5px;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--text-faint);margin-bottom:16px;
+  }
+  .prompt-line{color:var(--text-dim);}
+  .prompt-line .you{color:var(--accent-human);}
+  #typedIntent{color:var(--text);}
+  #typedCode{color:var(--text);white-space:pre-wrap;}
+  .code-kw{color:var(--accent-ai);}
+  .code-str{color:var(--diff-add);}
+  .code-tag{color:var(--accent-human);}
+  .cursor{
+    display:inline-block;width:7px;height:15px;background:var(--accent-ai);
+    vertical-align:text-bottom;margin-left:2px;
+    animation:blink 1s step-end infinite;
+  }
+  @keyframes blink{50%{opacity:0;}}
+
+  /* ============ SECTION SHARED ============ */
+  section{position:relative;z-index:1;padding:88px 0;border-top:1px solid var(--border-soft);}
+  .section-head{margin-bottom:52px;max-width:640px;}
+  .section-num{
+    font-family:var(--font-mono);font-size:12px;color:var(--accent-ai);
+    margin-bottom:12px;
+  }
+  h2{
+    font-family:var(--font-display);
+    font-size:clamp(28px, 3.6vw, 40px);
+    font-weight:600;letter-spacing:-0.01em;
+  }
+  .section-desc{color:var(--text-dim);margin-top:14px;font-size:15.5px;}
+
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease, transform .6s ease;}
+  .reveal.in{opacity:1;transform:translateY(0);}
+
+  /* ============ FILE TREE / CAPABILITIES ============ */
+  .tree-wrap{
+    display:grid;grid-template-columns:220px 1fr;
+    border:1px solid var(--border);border-radius:10px;overflow:hidden;
+    background:var(--bg-elevated);
+  }
+  @media (max-width:780px){ .tree-wrap{grid-template-columns:1fr;} }
+  .tree-sidebar{
+    background:var(--surface);border-right:1px solid var(--border);
+    padding:18px 0;
+  }
+  @media (max-width:780px){ .tree-sidebar{border-right:none;border-bottom:1px solid var(--border);display:flex;overflow-x:auto;padding:10px 12px;gap:4px;} }
+  .tree-item{
+    font-family:var(--font-mono);font-size:13px;color:var(--text-dim);
+    padding:9px 20px;cursor:pointer;border-left:2px solid transparent;
+    transition:all .2s ease;white-space:nowrap;
+  }
+  .tree-item:hover{color:var(--text);}
+  .tree-item.active{color:var(--accent-ai);background:var(--accent-ai-dim);border-left-color:var(--accent-ai);}
+  .tree-content{padding:32px 34px;min-height:220px;}
+  .tree-content h3{
+    font-family:var(--font-display);font-size:21px;font-weight:600;margin-bottom:10px;
+  }
+  .tree-content p{color:var(--text-dim);font-size:14.5px;max-width:520px;}
+  .tree-tag{
+    display:inline-block;font-family:var(--font-mono);font-size:11px;
+    color:var(--accent-human);background:var(--accent-human-dim);
+    padding:3px 9px;border-radius:4px;margin-top:16px;
+  }
+
+  /* ============ PIPELINE ============ */
+  .pipeline{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+    background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;
+  }
+  @media (max-width:860px){ .pipeline{grid-template-columns:1fr;} }
+  .pipe-step{background:var(--bg-elevated);padding:28px 22px;position:relative;}
+  .pipe-index{
+    font-family:var(--font-mono);font-size:11px;color:var(--text-faint);
+    margin-bottom:14px;
+  }
+  .pipe-step h4{font-family:var(--font-display);font-size:17px;font-weight:600;margin-bottom:8px;}
+  .pipe-step p{font-size:13.5px;color:var(--text-dim);}
+  .pipe-step::after{
+    content:'→';position:absolute;right:-14px;top:50%;transform:translateY(-50%);
+    color:var(--text-faint);font-size:16px;z-index:2;
+  }
+  .pipe-step:last-child::after{display:none;}
+  @media (max-width:860px){ .pipe-step::after{content:'↓';right:auto;left:22px;top:auto;bottom:-14px;transform:none;} }
+
+  /* ============ DIFF ============ */
+  .diff-block{
+    font-family:var(--font-mono);font-size:13.5px;
+    background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;
+    overflow:hidden;
+  }
+  .diff-header{
+    padding:10px 18px;border-bottom:1px solid var(--border);
+    color:var(--text-faint);font-size:11.5px;letter-spacing:0.06em;
+  }
+  .diff-line{
+    display:flex;padding:7px 18px;gap:14px;align-items:flex-start;
+  }
+  .diff-line .sign{width:14px;flex-shrink:0;user-select:none;}
+  .diff-line.remove{background:var(--diff-remove-bg);}
+  .diff-line.remove .sign{color:var(--diff-remove);}
+  .diff-line.remove .txt{color:#d7a5a2;text-decoration:line-through;text-decoration-color:rgba(248,81,73,0.4);}
+  .diff-line.add{background:var(--diff-add-bg);}
+  .diff-line.add .sign{color:var(--diff-add);}
+  .diff-line.add .txt{color:#bfe6c4;}
+
+  /* ============ HONEST / LIMITS ============ */
+  .limits-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:18px;
+  }
+  @media (max-width:820px){ .limits-grid{grid-template-columns:1fr;} }
+  .limit-card{
+    border:1px solid var(--border);border-radius:10px;padding:26px 24px;
+    background:var(--bg-elevated);
+  }
+  .limit-card .icon{
+    width:32px;height:32px;border-radius:7px;
+    background:var(--accent-human-dim);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--accent-human);font-family:var(--font-mono);font-size:14px;
+    margin-bottom:16px;
+  }
+  .limit-card h4{font-family:var(--font-display);font-size:16px;font-weight:600;margin-bottom:8px;}
+  .limit-card p{font-size:13.5px;color:var(--text-dim);}
+
+  /* ============ CTA / FOOTER ============ */
+  .cta-section{text-align:left;}
+  .terminal-cta{
+    font-family:var(--font-mono);
+    background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;
+    padding:28px 30px;display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:20px;
+  }
+  .terminal-cta .prompt{font-size:15px;color:var(--text);}
+  .terminal-cta .prompt .sym{color:var(--accent-ai);}
+
+  footer{
+    border-top:1px solid var(--border-soft);
+    padding:36px 0;
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;
+  }
+  footer p{font-family:var(--font-mono);font-size:12px;color:var(--text-faint);}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    .cursor{animation:none;}
+    .reveal{transition:none;opacity:1;transform:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+
+<header>
+  <div class="wrap nav-inner">
+    <div class="logo"><span class="dot"></span> ai-in-web.dev</div>
+    <nav class="nav-links">
+      <ul>
+        <li><a href="#capabilities">capabilities</a></li>
+        <li><a href="#pipeline">pipeline</a></li>
+        <li><a href="#diff">before/after</a></li>
+        <li><a href="#limits">limits</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap" style="border-top:none;">
+    <div class="eyebrow">Web Development, Rewritten</div>
+    <h1>You describe the page. <span class="accent">The code writes itself.</span></h1>
+    <p class="hero-sub">AI hasn't just sped up web development — it's changed who's allowed to start. Designers prompt layouts into being, developers review instead of type, and the browser becomes a place where intent turns directly into interface.</p>
+    <div class="hero-cta">
+      <a href="#pipeline" class="btn btn-primary">See the pipeline ↓</a>
+      <a href="#limits" class="btn btn-ghost">What still needs a human</a>
+    </div>
+
+    <div class="ide">
+      <div class="ide-titlebar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="ide-tabs">
+          <div class="ide-tab active">intent.md</div>
+          <div class="ide-tab">generated.tsx</div>
+        </div>
+      </div>
+      <div class="ide-body">
+        <div class="ide-pane left">
+          <div class="pane-label">You write</div>
+          <div class="prompt-line"><span class="you">&gt; </span><span id="typedIntent"></span></div>
+        </div>
+        <div class="ide-pane">
+          <div class="pane-label">AI generates</div>
+          <div id="typedCode"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="capabilities" class="wrap">
+    <div class="section-head reveal">
+      <div class="section-num">01 / where AI already lives in the stack</div>
+      <h2>Every file in the project now has a co-author.</h2>
+      <p class="section-desc">Not one tool, one layer. AI shows up differently depending on which part of the build you're standing in.</p>
+    </div>
+
+    <div class="tree-wrap reveal">
+      <div class="tree-sidebar" id="treeSidebar">
+        <div class="tree-item active" data-i="0">📐 design/</div>
+        <div class="tree-item" data-i="1">⌨ components/</div>
+        <div class="tree-item" data-i="2">🧪 tests/</div>
+        <div class="tree-item" data-i="3">♿ a11y/</div>
+        <div class="tree-item" data-i="4">🌐 content/</div>
+        <div class="tree-item" data-i="5">🚀 deploy/</div>
+      </div>
+      <div class="tree-content" id="treeContent">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </section>
+
+  <section id="pipeline" class="wrap">
+    <div class="section-head reveal">
+      <div class="section-num">02 / the new build sequence</div>
+      <h2>From a sentence to a shipped page.</h2>
+      <p class="section-desc">The order hasn't changed much — design, build, test, ship — but AI now sits inside every step instead of waiting at the edges.</p>
+    </div>
+
+    <div class="pipeline reveal">
+      <div class="pipe-step">
+        <div class="pipe-index">STEP 01</div>
+        <h4>Describe</h4>
+        <p>A rough brief, a sketch, or a competitor link goes in — AI turns it into a structured layout and component list.</p>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-index">STEP 02</div>
+        <h4>Generate</h4>
+        <p>Components, styles and data-fetching logic get scaffolded in seconds, matching the project's existing patterns.</p>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-index">STEP 03</div>
+        <h4>Review</h4>
+        <p>A developer reads the diff, not the docs — approving, editing, or rejecting what the model proposed.</p>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-index">STEP 04</div>
+        <h4>Ship</h4>
+        <p>AI writes the commit message, flags the regressions, and drafts the release notes before the PR merges.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="diff" class="wrap">
+    <div class="section-head reveal">
+      <div class="section-num">03 / the workflow, as a diff</div>
+      <h2>What actually changed isn't the code. It's the timeline.</h2>
+      <p class="section-desc">Same outcome, different route. Here's a typical feature request, before and after.</p>
+    </div>
+
+    <div class="diff-block reveal">
+      <div class="diff-header">feature/pricing-page — workflow.diff</div>
+      <div class="diff-line remove"><span class="sign">−</span><span class="txt">Wireframe in a design tool, wait two days for review</span></div>
+      <div class="diff-line remove"><span class="sign">−</span><span class="txt">Hand-code layout, breakpoints, and states from scratch</span></div>
+      <div class="diff-line remove"><span class="sign">−</span><span class="txt">Write unit tests after the feature is "done"</span></div>
+      <div class="diff-line remove"><span class="sign">−</span><span class="txt">Manually check contrast ratios and tab order</span></div>
+      <div class="diff-line add"><span class="sign">+</span><span class="txt">Describe the section, get three layout options in minutes</span></div>
+      <div class="diff-line add"><span class="sign">+</span><span class="txt">Generate the component tree, then hand-tune spacing and taste</span></div>
+      <div class="diff-line add"><span class="sign">+</span><span class="txt">Tests are drafted alongside the component, not after it</span></div>
+      <div class="diff-line add"><span class="sign">+</span><span class="txt">Accessibility issues get flagged inline, before the PR opens</span></div>
+    </div>
+  </section>
+
+  <section id="limits" class="wrap">
+    <div class="section-head reveal">
+      <div class="section-num">04 / the honest part</div>
+      <h2>What AI still hands back to you.</h2>
+      <p class="section-desc">Generation is the easy 80%. The remaining 20% is still where the job lives.</p>
+    </div>
+
+    <div class="limits-grid reveal">
+      <div class="limit-card">
+        <div class="icon">?</div>
+        <h4>Judgment calls</h4>
+        <p>Which trade-off to make when speed, cost, and user experience pull in different directions — that's still a human decision.</p>
+      </div>
+      <div class="limit-card">
+        <div class="icon">△</div>
+        <h4>System architecture</h4>
+        <p>AI is strong inside a file. It's weaker at deciding how forty files should relate to each other two years from now.</p>
+      </div>
+      <div class="limit-card">
+        <div class="icon">✓</div>
+        <h4>Taste</h4>
+        <p>It can generate ten versions of a hero section. Knowing which one actually fits the brand is still a design skill, not a prompt.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap cta-section" style="padding-bottom:64px;">
+    <div class="terminal-cta reveal">
+      <div class="prompt"><span class="sym">$</span> the next website you build will have two authors — you, and the model reading over your shoulder.</div>
+      <a href="#" class="btn btn-primary" onclick="return false;">Start building</a>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>AI IN WEB DEVELOPMENT — A FIELD NOTE, NOT A SALES PITCH</p>
+  <p>BUILT AS A DEMONSTRATION</p>
+</footer>
+
+<script>
+  // Typing animation for hero IDE mockup
+  const intentText = "Build a pricing page with 3 tiers, monthly/yearly toggle, and a highlighted middle plan.";
+  const codeLines = [
+    ['<span class="code-kw">export function</span> <span class="code-tag">PricingPage</span>() {'],
+    ['  <span class="code-kw">const</span> [yearly, setYearly] = useState(<span class="code-str">false</span>);'],
+    [''],
+    ['  <span class="code-kw">return</span> ('],
+    ['    &lt;<span class="code-tag">TierGrid</span> highlight=<span class="code-str">"pro"</span> /&gt;'],
+    ['  );'],
+    ['}']
+  ];
+
+  const intentEl = document.getElementById('typedIntent');
+  const codeEl = document.getElementById('typedCode');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function typeText(el, text, speed, done){
+    if(reduceMotion){ el.innerHTML = text; if(done) done(); return; }
+    let i = 0;
+    el.innerHTML = '<span class="cursor"></span>';
+    const timer = setInterval(() => {
+      i++;
+      el.innerHTML = text.slice(0, i) + '<span class="cursor"></span>';
+      if(i >= text.length){
+        clearInterval(timer);
+        if(done) done();
+      }
+    }, speed);
+  }
+
+  function typeCode(el, lines, speed, done){
+    if(reduceMotion){
+      el.innerHTML = lines.map(l => l[0]).join('\n');
+      if(done) done();
+      return;
+    }
+    let li = 0;
+    el.innerHTML = '';
+    function nextLine(){
+      if(li >= lines.length){ if(done) done(); return; }
+      const full = lines[li][0];
+      const plain = full.replace(/<[^>]*>/g, '');
+      let ci = 0;
+      const soFar = lines.slice(0, li).map(l => l[0]).join('\n');
+      const timer = setInterval(() => {
+        ci++;
+        // reveal proportionally by re-rendering the tagged string up to plain length
+        let visible = plain.slice(0, ci);
+        el.innerHTML = (soFar ? soFar + '\n' : '') + visible + '<span class="cursor"></span>';
+        if(ci >= plain.length){
+          clearInterval(timer);
+          li++;
+          setTimeout(nextLine, 90);
+        }
+      }, 18);
+    }
+    nextLine();
+  }
+
+  window.addEventListener('load', () => {
+    typeText(intentEl, intentText, 26, () => {
+      setTimeout(() => typeCode(codeEl, codeLines, 18), 300);
+    });
+  });
+
+  // File-tree capability switcher
+  const capData = [
+    {
+      title: "Design → layout, without the blank canvas",
+      body: "Describe the section you need and get a structured component layout back — spacing, hierarchy and responsive rules included, ready to be tuned rather than started from zero.",
+      tag: "design/hero-section.fig"
+    },
+    {
+      title: "Components that match the project, not a tutorial",
+      body: "Generation reads the existing codebase first, so new components inherit the naming conventions, prop patterns, and styling approach already in use.",
+      tag: "components/PricingCard.tsx"
+    },
+    {
+      title: "Tests written alongside the feature",
+      body: "Unit and interaction tests are drafted from the component's own behavior, catching the boring edge cases before a reviewer has to ask about them.",
+      tag: "tests/pricing.spec.ts"
+    },
+    {
+      title: "Accessibility checked before launch, not after complaints",
+      body: "Contrast ratios, focus order, and screen-reader labels get flagged inline during generation — the kind of check that used to happen only in a late-stage audit.",
+      tag: "a11y/contrast-report.json"
+    },
+    {
+      title: "Content that adapts to who's reading it",
+      body: "Product copy, onboarding text, and empty states can be generated per audience segment, then reviewed by a human editor for voice and accuracy.",
+      tag: "content/onboarding.md"
+    },
+    {
+      title: "Deploys that explain themselves",
+      body: "Commit messages, changelogs, and rollback notes get drafted automatically from the diff — so the history of a project stays readable months later.",
+      tag: "deploy/CHANGELOG.md"
+    }
+  ];
+
+  const items = document.querySelectorAll('.tree-item');
+  const contentEl = document.getElementById('treeContent');
+
+  function renderCap(i){
+    const d = capData[i];
+    contentEl.innerHTML = `<h3>${d.title}</h3><p>${d.body}</p><span class="tree-tag">${d.tag}</span>`;
+  }
+  renderCap(0);
+
+  items.forEach(item => {
+    item.addEventListener('click', () => {
+      items.forEach(x => x.classList.remove('active'));
+      item.classList.add('active');
+      renderCap(parseInt(item.dataset.i));
+    });
+  });
+
+  // Scroll reveal
+  const revealEls = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if(e.isIntersecting){
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    revealEls.forEach(el => io.observe(el));
+  } else {
+    revealEls.forEach(el => el.classList.add('in'));
+  }
+</script>
+
+</body>
+</html>
